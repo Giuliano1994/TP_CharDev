@@ -87,7 +87,7 @@ static int device_open(struct inode *inode, struct file *file)
     if (atomic_cmpxchg(&already_open, CDEV_NOT_USED, CDEV_EXCLUSIVE_OPEN))
         return -EBUSY;
 
-    sprintf(msg, "¡Ya te dije %d veces Hola mundo!\n", counter++);
+   
     try_module_get(THIS_MODULE);
 
     return SUCCESS;
@@ -114,33 +114,24 @@ static ssize_t device_read(struct file *filp,
     /* Número de bytes realmente escritos en el búfer */
     int bytes_read = 0;
     const char *msg_ptr = msg;
-    ssize_t i;
+    ssize_t msg_len = strlen(msg);
 
-    if (!*(msg_ptr + *offset)) { /* estamos al final del mensaje */
-        *offset = 0; /* resetear el offset */
-        return 0; /* indicar el final del archivo */
+    /* Si estamos al final del mensaje, retornar 0 (EOF) */
+    if (*offset >= msg_len) {
+        return 0;
     }
-
-    // Ir al final del mensaje
-    while (*(msg_ptr + *offset)) {
-        (*offset)++;
-    }
-
-    // Decrementar el offset para que apunte al último caracter del mensaje
-    (*offset)--;
 
     /* Poner realmente los datos en el búfer */
-    for (i = *offset; i >= 0 ; i--) {
+    while (length && (*offset < msg_len)) {
         /* El búfer está en el segmento de datos de usuario, no en el segmento de kernel,
          * por lo que la asignación "*" no funcionará. Tenemos que usar put_user que copia
          * datos del segmento de datos del kernel al segmento de datos del usuario.
          */
-        put_user(*(msg_ptr + i), buffer++);
-        bytes_read++;
+        put_user(*(msg_ptr + msg_len - 1 - *offset), buffer++);
+        (*offset)++;
         length--;
+        bytes_read++;
     }
-
-    *offset = 0; // Restablecer el offset para que la próxima lectura comience desde el principio del mensaje invertido
 
     /* La mayoría de las funciones de lectura devuelven el número de bytes colocados en el búfer. */
     return bytes_read;
@@ -150,9 +141,6 @@ static ssize_t device_read(struct file *filp,
 static ssize_t device_write(struct file *filp, const char __user *buff,
                             size_t len, loff_t *off)
 {
-    char kernel_buffer[BUF_LEN + 1];  // Buffer en el espacio del kernel para almacenar el mensaje
-    
-
     // Verificar si el tamaño del mensaje excede la longitud máxima permitida
     if (len > BUF_LEN) {
         pr_alert("Longitud del mensaje excede el límite.\n");
@@ -160,16 +148,16 @@ static ssize_t device_write(struct file *filp, const char __user *buff,
     }
 
     // Copiar el mensaje desde el espacio de usuario al espacio del kernel
-    if (copy_from_user(kernel_buffer, buff, len) != 0) {
+    if (copy_from_user(msg, buff, len) != 0) {
         pr_alert("Error al copiar desde el espacio de usuario al espacio del kernel.\n");
         return -EFAULT;  // Error de copia
     }
 
     // Agregar el carácter nulo al final del mensaje para asegurar que sea una cadena válida
-    kernel_buffer[len] = '\0';
+    msg[len] = '\0';
 
     // Imprimir el mensaje en el kernel
-    pr_info("Mensaje recibido en el dispositivo: %s\n", kernel_buffer);
+    pr_info("Mensaje recibido en el dispositivo: %s\n", msg);
 
     // Devolver el número de bytes escritos (en este caso, simplemente la longitud del mensaje)
     return len;
