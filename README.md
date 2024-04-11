@@ -10,7 +10,7 @@ sudo insmod charDevDocu.ko
 dmesg | tail
 
 # Eliminar (descargar) un módulo del kernel en ejecución.
-sudo rmmod charDev.ko
+sudo rmmod charDevDocu.ko
 
 # Para ver los mensajes relacionados con la descarga del módulo.
 dmesg | tail
@@ -21,3 +21,16 @@ make clean
 
 # Listar todos los módulos del kernel cargados actualmente.
 lsmod
+
+
+# Damos permisos al charDev para poder escribir
+sudo chmod 777 /dev/chardev 
+
+# Damos un mensaje para escribir
+echo "mensaje" > /dev/chardev
+
+# Vemos el mensaje por consola 
+cat /dev/chardev 
+
+
+
