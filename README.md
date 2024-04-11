@@ -4,16 +4,16 @@ Comandos utilizados en la compilacion y prueba del Modulo
 make
 
 # registro el driver
-sudo insmod charDev.ko
+sudo insmod charDevDocu.ko
 
 # Utilidad que muestra los mensajes del kernel. 
-dmrsg | tail
+dmesg | tail
 
 # Eliminar (descargar) un módulo del kernel en ejecución.
 sudo rmmod charDev.ko
 
 # Para ver los mensajes relacionados con la descarga del módulo.
-dmrsg | tail
+dmesg | tail
 
 # Limpia los archivos generados durante el proceso de compilación.  Elimina los archivos objeto y otros archivos generados durante la compilación, dejando solo los archivos fuente. 
 make clean
